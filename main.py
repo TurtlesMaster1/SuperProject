@@ -17,6 +17,6 @@ indices = [
 ]
 
 mesh = renderer.create_mesh(vertices, indices)
-mesh.set_model_matrix(rotation_y(0.0))
+mesh.set_model_matrix(rotation_y(0.5))
 
 renderer.run()
