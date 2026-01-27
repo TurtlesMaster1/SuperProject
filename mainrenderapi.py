@@ -75,13 +75,17 @@ class Renderer:
             }
             """,
             fragment_shader="""
-            #version 330
-            out vec4 color;
+#version 330
 
-            void main() {
-                color = vec4(0.7, 0.7, 0.7, 1.0);
-            }
-            """,
+uniform vec3 camera_pos;    // same for all fragments
+
+out vec4 color;
+
+void main() {
+
+    color = vec4(1,1,1,1);
+}
+"""
         )
 
     # -------------------------
@@ -93,11 +97,11 @@ class Renderer:
         return mesh
 
     def run(self):
-        while not glfw.window_should_close(self.window):
-            self._render_frame()
+        if glfw.window_should_close(self.window):
+            glfw.terminate()
+            return
 
-        glfw.terminate()
-
+        self._render_frame()
     # -------------------------
     # Internal render loop
     # -------------------------
