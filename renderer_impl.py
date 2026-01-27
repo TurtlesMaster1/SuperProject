@@ -117,5 +117,15 @@ void main() {
             self.program["mvp"].write(struct.pack("16f", *mvp))
             mesh.draw()
 
-        glfw.swap_buffers(self.window)
-        glfw.poll_events()
+    def run_frames(self, num_frames):
+        import time
+        start = time.time()
+        for _ in range(num_frames):
+            if glfw.window_should_close(self.window):
+                break
+            self._render_frame()
+            glfw.swap_buffers(self.window)
+            glfw.poll_events()
+        end = time.time()
+        fps = num_frames / (end - start) if end > start else 0
+        return fps

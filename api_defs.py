@@ -23,3 +23,7 @@ class Renderer(abc.ABC):
     @abc.abstractmethod
     def run(self):
         pass
+
+    @abc.abstractmethod
+    def run_frames(self, num_frames):
+        pass
