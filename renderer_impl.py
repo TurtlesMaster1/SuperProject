@@ -99,8 +99,13 @@ void main() {
         if glfw.window_should_close(self.window):
             glfw.terminate()
             return
-
         self._render_frame()
+        # Present the rendered frame and process events so an interactive
+        # `run()` loop actually updates the window. `run_frames` already
+        # does swap/poll, but `run()` did not — causing the window to stay
+        # un-updated when used from `main.py`.
+        glfw.swap_buffers(self.window)
+        glfw.poll_events()
 
     def _render_frame(self):
         self.ctx.clear(0.1, 0.1, 1)
