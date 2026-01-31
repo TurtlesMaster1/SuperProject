@@ -3,8 +3,45 @@ import moderngl
 import struct
 import math
 import time
-from mathhelpers import perspective, rotation_y, translate, mat4_mul
-from api_defs import Mesh, Renderer
+from mathhelpers import perspective, rotation_y, rotation_x, translate, mat4_mul
+from api_defs import Mesh, Renderer, InputState
+
+
+class ConcreteInputState(InputState):
+    def __init__(self, window):
+        self.window = window
+        self.keys_pressed = set()
+        self.mouse_pos = (0, 0)
+        self.mouse_buttons_pressed = set()
+        
+        # Set up callbacks
+        glfw.set_key_callback(window, self._key_callback)
+        glfw.set_mouse_button_callback(window, self._mouse_button_callback)
+        glfw.set_cursor_pos_callback(window, self._cursor_pos_callback)
+    
+    def _key_callback(self, window, key, scancode, action, mods):
+        if action == glfw.PRESS:
+            self.keys_pressed.add(key)
+        elif action == glfw.RELEASE:
+            self.keys_pressed.discard(key)
+    
+    def _mouse_button_callback(self, window, button, action, mods):
+        if action == glfw.PRESS:
+            self.mouse_buttons_pressed.add(button)
+        elif action == glfw.RELEASE:
+            self.mouse_buttons_pressed.discard(button)
+    
+    def _cursor_pos_callback(self, window, xpos, ypos):
+        self.mouse_pos = (xpos, ypos)
+    
+    def is_key_pressed(self, key):
+        return key in self.keys_pressed
+    
+    def get_mouse_position(self):
+        return self.mouse_pos
+    
+    def is_mouse_button_pressed(self, button):
+        return button in self.mouse_buttons_pressed
 
 
 class ConcreteMesh(Mesh):
@@ -42,7 +79,7 @@ class ConcreteMesh(Mesh):
 
 
 class ConcreteRenderer(Renderer):
-    def __init__(self, width=800, height=600, title="Renderer"):
+    def __init__(self, width=1800, height=1200, title="Renderer"):
         if not glfw.init():
             raise RuntimeError("GLFW init failed")
 
@@ -66,6 +103,19 @@ class ConcreteRenderer(Renderer):
         self.width = width
         self.height = height
         self.start_time = time.time()
+        
+        # Initialize input state
+        self.input_state = ConcreteInputState(self.window)
+        
+        # Initialize camera position
+        self.camera_pos = (-3.0, -20, 0.0)
+        
+        # Initialize camera rotation (pitch, yaw)
+        self.camera_rotation = (0.0, 0.0)
+        self.last_mouse_pos = (0, 0)
+        self.cursor_locked = False
+        self.center_x = width // 2
+        self.center_y = height // 2
 
     def _create_program(self):
         return self.ctx.program(
@@ -108,13 +158,18 @@ void main() {
         glfw.poll_events()
 
     def _render_frame(self):
-        self.ctx.clear(0.1, 0.1, 1)
+        self.ctx.clear(148/255.0, 189/255.0, 255/255.0)
         self.ctx.enable(moderngl.DEPTH_TEST)
 
-        t = time.time() - self.start_time
+        t = self.start_time
 
         proj = perspective(math.radians(60.0), self.width / self.height, 0.1, 100.0)
-        view = translate(-3.0)
+        
+        # Apply camera rotation then translation
+        pitch, yaw = self.camera_rotation
+        rot_x = rotation_x(pitch)
+        rot_y = rotation_y(yaw)
+        view = mat4_mul(rot_x, mat4_mul(rot_y, translate(self.camera_pos[0], self.camera_pos[1], self.camera_pos[2])))
 
         for mesh in self.meshes:
             model = mesh.model_matrix or rotation_y(t)
@@ -134,3 +189,25 @@ void main() {
         end = time.time()
         fps = num_frames / (end - start) if end > start else 0
         return fps
+
+    def get_input(self):
+        return self.input_state
+
+    def set_camera_position(self, x, y, z):
+        self.camera_pos = (x, y, z)
+
+    def get_camera_position(self):
+        return self.camera_pos
+
+    def set_camera_rotation(self, pitch, yaw):
+        self.camera_rotation = (pitch, yaw)
+
+    def get_camera_rotation(self):
+        return self.camera_rotation
+
+    def set_cursor_locked(self, locked):
+        self.cursor_locked = locked
+        if locked:
+            glfw.set_input_mode(self.window, glfw.CURSOR, glfw.CURSOR_DISABLED)
+        else:
+            glfw.set_input_mode(self.window, glfw.CURSOR, glfw.CURSOR_NORMAL)

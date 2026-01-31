@@ -21,12 +21,22 @@ def rotation_y(angle):
          0, 0, 0, 1,
     ]
 
-def translate(z):
+def rotation_x(angle):
+    c = math.cos(angle)
+    s = math.sin(angle)
+    return [
+        1, 0, 0, 0,
+        0, c, -s, 0,
+        0, s, c, 0,
+        0, 0, 0, 1,
+    ]
+
+def translate(x, y=0, z=0):
     return [
         1, 0, 0, 0,
         0, 1, 0, 0,
         0, 0, 1, 0,
-        0, 0, z, 1,
+        x, y, z, 1,
     ]
 
 def mat4_mul(a, b):
@@ -35,3 +45,19 @@ def mat4_mul(a, b):
         for col in range(4)
         for row in range(4)
     ]
+
+def get_camera_forward(pitch, yaw):
+    """Get forward direction vector from pitch and yaw angles."""
+    return (
+        math.sin(yaw),
+        math.sin(pitch),
+        math.cos(yaw)
+    )
+
+def get_camera_right(pitch, yaw):
+    """Get right direction vector from pitch and yaw angles."""
+    return (
+        -math.cos(yaw),
+        0,
+        math.sin(yaw)
+    )
