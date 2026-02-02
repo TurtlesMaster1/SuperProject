@@ -16,12 +16,12 @@ print("[2/6] Renderer initialized successfully")
 # Constants
 # =========================
 BLOCK_HALF = 0.5
-PLAYER_RADIUS = 0.3
-PLAYER_HEIGHT = 1.8
-GRAVITY = -0.02
+PLAYER_RADIUS = 3
+PLAYER_HEIGHT = 18
+GRAVITY = -2
 JUMP_VELOCITY = 0.35
-CAMERA_SPEED = 0.05
-MOUSE_SENS = 0.005
+CAMERA_SPEED = 0.5
+MOUSE_SENS = 0.05
 EYE_HEIGHT = 1.6
 
 # =========================
@@ -185,3 +185,4 @@ while True:
     renderer.set_camera_position(cam_x, cam_y, cam_z)
     renderer.set_camera_rotation(pitch, yaw)
     renderer.run()
+
