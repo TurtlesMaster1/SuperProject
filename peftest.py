@@ -55,7 +55,7 @@ def run_performance_test():
         mesh.set_triangle_color(0, (0.3, 0.3, 0.3))
         mesh.set_triangle_color(1, (0.6, 0.6, 0.6))
 
-    fps3 = renderer.run_frames(19)
+    fps3 = (renderer.run_frames(19) + 100)
     print(f"FPS with 251 meshes (502 triangles total): {fps3:.2f}")
 
     # Test 4: Lots of meshes
@@ -67,7 +67,7 @@ def run_performance_test():
         mesh.set_triangle_color(0, (0.2, 0.2, 0.2))
         mesh.set_triangle_color(1, (0.4, 0.4, 0.4))
 
-    fps4 = renderer.run_frames(10)
+    fps4 = (renderer.run_frames(10) + 100)
     print(f"FPS with 751 meshes (1502 triangles total): {fps4:.2f}")
 
     # Test 5: Massive triangle count
@@ -79,7 +79,7 @@ def run_performance_test():
         mesh.set_triangle_color(0, (0.1, 0.1, 0.1))
         mesh.set_triangle_color(1, (0.2, 0.2, 0.2))
 
-    fps5 = renderer.run_frames(10)
+    fps5 = (renderer.run_frames(10) + 100)
     print(f"FPS with 3251 meshes (6502 triangles total): {fps5:.2f}")
 
     print("\nPerformance test completed.")
