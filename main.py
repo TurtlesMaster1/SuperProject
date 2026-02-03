@@ -1,7 +1,10 @@
 import math
 import random
 
+import glfw
+
 from mainrenderapi import Renderer
+from mathhelpers import get_camera_forward, get_camera_right
 
 
 def _fade(t):
@@ -87,7 +90,8 @@ def generate_world_mesh(renderer, width=120, depth=120, noise_scale=0.06, height
             nz = z * noise_scale
             h = fbm(nx, nz, perm)
             h = (h + 1.0) * 0.5
-            h = h ** 1.2
+            h = h ** 2
+            h+=0.5
             heights.append(h)
             y = (h - 0.45) * height_scale
             vertices.extend([
@@ -133,9 +137,89 @@ def main():
     renderer.set_camera_position(0.0, -10.0, -40.0)
     renderer.set_camera_rotation(0.35, 0.75)
 
-    import glfw
+    cursor_locked = True
+    renderer.set_cursor_locked(cursor_locked)
+
+    last_time = glfw.get_time()
+    last_mouse = glfw.get_cursor_pos(renderer.window)
+
+    move_speed = 18.0
+    mouse_sensitivity = 0.0025
+
+    fps_accum = 0.0
+    fps_frames = 0
+
     while not glfw.window_should_close(renderer.window):
+        now = glfw.get_time()
+        dt = now - last_time
+        last_time = now
+
+        if glfw.get_key(renderer.window, glfw.KEY_ESCAPE) == glfw.PRESS:
+            cursor_locked = False
+            renderer.set_cursor_locked(cursor_locked)
+        if glfw.get_mouse_button(renderer.window, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS:
+            cursor_locked = True
+            renderer.set_cursor_locked(cursor_locked)
+
+        mouse_x, mouse_y = glfw.get_cursor_pos(renderer.window)
+        if cursor_locked:
+            dx = mouse_x - last_mouse[0]
+            dy = mouse_y - last_mouse[1]
+            pitch, yaw = renderer.get_camera_rotation()
+            yaw += dx * mouse_sensitivity
+            pitch -= dy * mouse_sensitivity
+            pitch = max(-1.5, min(1.5, pitch))
+            renderer.set_camera_rotation(pitch, yaw)
+        last_mouse = (mouse_x, mouse_y)
+
+        pitch, yaw = renderer.get_camera_rotation()
+        forward = get_camera_forward(pitch, yaw)
+        right = get_camera_right(pitch, yaw)
+
+        move_x = 0.0
+        move_y = 0.0
+        move_z = 0.0
+
+        if glfw.get_key(renderer.window, glfw.KEY_W) == glfw.PRESS:
+            move_x += forward[0]
+            move_y += forward[1]
+            move_z += forward[2]
+        if glfw.get_key(renderer.window, glfw.KEY_S) == glfw.PRESS:
+            move_x -= forward[0]
+            move_y -= forward[1]
+            move_z -= forward[2]
+        if glfw.get_key(renderer.window, glfw.KEY_D) == glfw.PRESS:
+            move_x += right[0]
+            move_z += right[2]
+        if glfw.get_key(renderer.window, glfw.KEY_A) == glfw.PRESS:
+            move_x -= right[0]
+            move_z -= right[2]
+        if glfw.get_key(renderer.window, glfw.KEY_SPACE) == glfw.PRESS:
+            move_y += 1.0
+        if glfw.get_key(renderer.window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
+            move_y -= 1.0
+
+        length = math.sqrt(move_x * move_x + move_y * move_y + move_z * move_z)
+        if length > 0.0001:
+            move_x /= length
+            move_y /= length
+            move_z /= length
+
+        cam_x, cam_y, cam_z = renderer.get_camera_position()
+        cam_x += move_x * move_speed * dt
+        cam_y += move_y * move_speed * dt
+        cam_z += move_z * move_speed * dt
+        renderer.set_camera_position(cam_x, cam_y, cam_z)
+
         renderer.run()
+
+        fps_accum += dt
+        fps_frames += 1
+        if fps_accum >= 0.5:
+            fps = fps_frames / fps_accum
+            glfw.set_window_title(renderer.window, f"Perlin World - {fps:.1f} FPS")
+            fps_accum = 0.0
+            fps_frames = 0
 
 
 if __name__ == "__main__":
