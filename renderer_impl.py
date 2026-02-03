@@ -108,7 +108,7 @@ class ConcreteRenderer(Renderer):
         self.input_state = ConcreteInputState(self.window)
         
         # Initialize camera position
-        self.camera_pos = (-3.0, -20, 0.0)
+        self.camera_pos = (-3.0, 20, 0.0)
         
         # Initialize camera rotation (pitch, yaw)
         self.camera_rotation = (0.0, 0.0)
