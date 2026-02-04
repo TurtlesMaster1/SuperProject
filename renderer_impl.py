@@ -167,7 +167,8 @@ void main() {
         
         # Apply camera rotation then translation
         pitch, yaw = self.camera_rotation
-        rot_x = rotation_x(pitch)
+        # Treat pitch=180deg as the new zero by offsetting by pi.
+        rot_x = rotation_x(pitch + math.pi)
         rot_y = rotation_y(yaw)
         view = mat4_mul(rot_x, mat4_mul(rot_y, translate(self.camera_pos[0], self.camera_pos[1], self.camera_pos[2])))
 

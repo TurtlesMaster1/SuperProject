@@ -1,98 +1,36 @@
 import math
-import random
 
 import glfw
 
-from mainrenderapi import Renderer
+from mainrenderapi import Renderer, ConcreteWorldGen
 from mathhelpers import get_camera_forward, get_camera_right
 
 
-def _fade(t):
-    return t * t * t * (t * (t * 6 - 15) + 10)
+def main():
+    renderer = Renderer(1600, 1000, "Perlin World")
 
+    worldgen = ConcreteWorldGen()
+    world_w = 320
+    world_d = 320
+    height_scale = 120.0
 
-def _lerp(a, b, t):
-    return a + t * (b - a)
+    heights, world_w, world_d = worldgen.generate_world_heights(
+        width=world_w,
+        depth=world_d,
+        noise_scale=0.0015,
+        seed=1337,
+    )
 
-
-def _grad(hash_value, x, y):
-    h = hash_value & 3
-    u = x if h < 2 else y
-    v = y if h < 2 else x
-    return (u if (h & 1) == 0 else -u) + (v if (h & 2) == 0 else -v)
-
-
-def build_permutation(seed):
-    rng = random.Random(seed)
-    p = list(range(256))
-    rng.shuffle(p)
-    return p + p
-
-
-def perlin2d(x, y, perm):
-    xi = math.floor(x) & 255
-    yi = math.floor(y) & 255
-    xf = x - math.floor(x)
-    yf = y - math.floor(y)
-
-    u = _fade(xf)
-    v = _fade(yf)
-
-    aa = perm[perm[xi] + yi]
-    ab = perm[perm[xi] + yi + 1]
-    ba = perm[perm[xi + 1] + yi]
-    bb = perm[perm[xi + 1] + yi + 1]
-
-    x1 = _lerp(_grad(aa, xf, yf), _grad(ba, xf - 1, yf), u)
-    x2 = _lerp(_grad(ab, xf, yf - 1), _grad(bb, xf - 1, yf - 1), u)
-
-    return _lerp(x1, x2, v)
-
-
-def fbm(x, y, perm, octaves=5, lacunarity=2.0, gain=0.5):
-    amplitude = 1.0
-    frequency = 1.0
-    total = 0.0
-    norm = 0.0
-    for _ in range(octaves):
-        total += perlin2d(x * frequency, y * frequency, perm) * amplitude
-        norm += amplitude
-        amplitude *= gain
-        frequency *= lacunarity
-    return total / norm if norm else 0.0
-
-
-def height_color(height_value):
-    if height_value < 0.42:
-        return (0.08, 0.28, 0.65)
-    if height_value < 0.48:
-        return (0.72, 0.66, 0.46)
-    if height_value < 0.70:
-        return (0.12, 0.55, 0.18)
-    if height_value < 0.85:
-        return (0.40, 0.40, 0.42)
-    return (0.92, 0.92, 0.95)
-
-
-def generate_world_mesh(renderer, width=120, depth=120, noise_scale=0.06, height_scale=14.0, seed=1337):
-    perm = build_permutation(seed)
     vertices = []
     indices = []
     colors = []
-    heights = []
 
-    x_offset = -width / 2.0
-    z_offset = -depth / 2.0
+    x_offset = -world_w / 2.0
+    z_offset = -world_d / 2.0
 
-    for z in range(depth + 1):
-        for x in range(width + 1):
-            nx = x * noise_scale
-            nz = z * noise_scale
-            h = fbm(nx, nz, perm)
-            h = (h + 1.0) * 0.5
-            h = h ** 2
-            h+=0.5
-            heights.append(h)
+    for z in range(world_d + 1):
+        for x in range(world_w + 1):
+            h = heights[z][x]
             y = (h - 0.45) * height_scale
             vertices.extend([
                 x + x_offset,
@@ -100,9 +38,9 @@ def generate_world_mesh(renderer, width=120, depth=120, noise_scale=0.06, height
                 z + z_offset,
             ])
 
-    stride = width + 1
-    for z in range(depth):
-        for x in range(width):
+    stride = world_w + 1
+    for z in range(world_d):
+        for x in range(world_w):
             i0 = z * stride + x
             i1 = i0 + 1
             i2 = i0 + stride
@@ -111,13 +49,13 @@ def generate_world_mesh(renderer, width=120, depth=120, noise_scale=0.06, height
             indices.extend([i0, i1, i2])
             indices.extend([i1, i3, i2])
 
-            h1 = heights[i0]
-            h2 = heights[i1]
-            h3 = heights[i2]
-            h4 = heights[i3]
+            h1 = heights[z][x]
+            h2 = heights[z][x + 1]
+            h3 = heights[z + 1][x]
+            h4 = heights[z + 1][x + 1]
 
-            colors.append(height_color((h1 + h2 + h3) / 3.0))
-            colors.append(height_color((h2 + h3 + h4) / 3.0))
+            colors.append(worldgen.height_color((h1 + h2 + h3) / 3.0))
+            colors.append(worldgen.height_color((h2 + h3 + h4) / 3.0))
 
     mesh = renderer.create_mesh(vertices, indices, colors)
     mesh.set_model_matrix([
@@ -126,25 +64,46 @@ def generate_world_mesh(renderer, width=120, depth=120, noise_scale=0.06, height
         0, 0, 1, 0,
         0, 0, 0, 1,
     ])
-    return mesh
 
+    # Rotate the world 180 degrees around the Z axis (screen upside down).
+    mesh.set_model_matrix([
+        -1, 0, 0, 0,
+        0, -1, 0, 0,
+        0, 0, 1, 0,
+        0, 0, 0, 1,
+    ])
 
-def main():
-    renderer = Renderer(1600, 1000, "Perlin World")
-
-    generate_world_mesh(renderer)
-
-    renderer.set_camera_position(0.0, -10.0, -40.0)
-    renderer.set_camera_rotation(0.35, 0.75)
+    sample_height = worldgen.make_height_sampler(heights, world_w, world_d, height_scale)
 
     cursor_locked = True
     renderer.set_cursor_locked(cursor_locked)
 
     last_time = glfw.get_time()
-    last_mouse = glfw.get_cursor_pos(renderer.window)
+    input_state = renderer.get_input()
+    last_mouse = input_state.get_mouse_position()
 
     move_speed = 18.0
     mouse_sensitivity = 0.0025
+    invert_mouse_y = False
+
+    player_height = 1.8
+    jump_speed = 9.0
+    gravity = -22.0
+    ground_snap = 0.15
+    slope_limit_deg = 40.0
+    max_climb = math.tan(math.radians(slope_limit_deg))
+
+    vel_x = 0.0
+    vel_y = 0.0
+    vel_z = 0.0
+
+    start_x = 0.0
+    start_z = 0.0
+    start_ground = sample_height(start_x, start_z)
+    if start_ground is None:
+        start_ground = 0.0
+    renderer.set_camera_position(start_x, start_ground + player_height, start_z)
+    renderer.set_camera_rotation(-0.35, 0.75)
 
     fps_accum = 0.0
     fps_frames = 0
@@ -154,21 +113,26 @@ def main():
         dt = now - last_time
         last_time = now
 
-        if glfw.get_key(renderer.window, glfw.KEY_ESCAPE) == glfw.PRESS:
+        input_state = renderer.get_input()
+
+        if input_state.is_key_pressed(glfw.KEY_ESCAPE):
             cursor_locked = False
             renderer.set_cursor_locked(cursor_locked)
-        if glfw.get_mouse_button(renderer.window, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS:
+        if input_state.is_mouse_button_pressed(glfw.MOUSE_BUTTON_LEFT):
             cursor_locked = True
             renderer.set_cursor_locked(cursor_locked)
 
-        mouse_x, mouse_y = glfw.get_cursor_pos(renderer.window)
+        mouse_x, mouse_y = input_state.get_mouse_position()
         if cursor_locked:
             dx = mouse_x - last_mouse[0]
             dy = mouse_y - last_mouse[1]
             pitch, yaw = renderer.get_camera_rotation()
             yaw += dx * mouse_sensitivity
-            pitch -= dy * mouse_sensitivity
-            pitch = max(-1.5, min(1.5, pitch))
+            if invert_mouse_y:
+                pitch += dy * mouse_sensitivity
+            else:
+                pitch -= dy * mouse_sensitivity
+            # Allow full rotation past 180 degrees.
             renderer.set_camera_rotation(pitch, yaw)
         last_mouse = (mouse_x, mouse_y)
 
@@ -177,38 +141,73 @@ def main():
         right = get_camera_right(pitch, yaw)
 
         move_x = 0.0
-        move_y = 0.0
         move_z = 0.0
 
-        if glfw.get_key(renderer.window, glfw.KEY_W) == glfw.PRESS:
-            move_x += forward[0]
-            move_y += forward[1]
-            move_z += forward[2]
-        if glfw.get_key(renderer.window, glfw.KEY_S) == glfw.PRESS:
+        if input_state.is_key_pressed(glfw.KEY_W):
             move_x -= forward[0]
-            move_y -= forward[1]
             move_z -= forward[2]
-        if glfw.get_key(renderer.window, glfw.KEY_D) == glfw.PRESS:
+        if input_state.is_key_pressed(glfw.KEY_S):
+            move_x += forward[0]
+            move_z += forward[2]
+        if input_state.is_key_pressed(glfw.KEY_D):
             move_x += right[0]
             move_z += right[2]
-        if glfw.get_key(renderer.window, glfw.KEY_A) == glfw.PRESS:
+        if input_state.is_key_pressed(glfw.KEY_A):
             move_x -= right[0]
             move_z -= right[2]
-        if glfw.get_key(renderer.window, glfw.KEY_SPACE) == glfw.PRESS:
-            move_y += 1.0
-        if glfw.get_key(renderer.window, glfw.KEY_LEFT_SHIFT) == glfw.PRESS:
-            move_y -= 1.0
-
-        length = math.sqrt(move_x * move_x + move_y * move_y + move_z * move_z)
+        length = math.sqrt(move_x * move_x + move_z * move_z)
         if length > 0.0001:
             move_x /= length
-            move_y /= length
             move_z /= length
 
         cam_x, cam_y, cam_z = renderer.get_camera_position()
-        cam_x += move_x * move_speed * dt
-        cam_y += move_y * move_speed * dt
-        cam_z += move_z * move_speed * dt
+
+        # Desired horizontal velocity
+        target_vx = move_x * move_speed
+        target_vz = move_z * move_speed
+
+        accel = 45.0
+        friction = 16.0
+
+        vel_x += (target_vx - vel_x) * min(1.0, accel * dt)
+        vel_z += (target_vz - vel_z) * min(1.0, accel * dt)
+
+        if length < 0.0001:
+            vel_x *= max(0.0, 1.0 - friction * dt)
+            vel_z *= max(0.0, 1.0 - friction * dt)
+
+        # Gravity
+        vel_y += gravity * dt
+
+        # Predict next horizontal position
+        next_x = cam_x + vel_x * dt
+        next_z = cam_z + vel_z * dt
+
+        ground_next = sample_height(next_x, next_z)
+        ground_now = sample_height(cam_x, cam_z)
+
+        if ground_next is None:
+            next_x, next_z = cam_x, cam_z
+            vel_x, vel_z = 0.0, 0.0
+            ground_next = ground_now
+
+        cam_x, cam_z = next_x, next_z
+
+        # Simple ground collision: only keep player above the terrain.
+        grounded = False
+        if ground_next is not None:
+            min_y = ground_next + player_height
+            if cam_y <= min_y + ground_snap:
+                cam_y = min_y
+                if vel_y < 0:
+                    vel_y = 0.0
+                grounded = True
+            if grounded and (
+                input_state.is_key_pressed(glfw.KEY_SPACE)
+                or glfw.get_key(renderer.window, glfw.KEY_SPACE) == glfw.PRESS
+            ):
+                vel_y = jump_speed
+
         renderer.set_camera_position(cam_x, cam_y, cam_z)
 
         renderer.run()
@@ -217,7 +216,16 @@ def main():
         fps_frames += 1
         if fps_accum >= 0.5:
             fps = fps_frames / fps_accum
-            glfw.set_window_title(renderer.window, f"Perlin World - {fps:.1f} FPS")
+            cam_x, cam_y, cam_z = renderer.get_camera_position()
+            pitch, yaw = renderer.get_camera_rotation()
+            pitch_deg = math.degrees(pitch)
+            yaw_deg = math.degrees(yaw)
+            glfw.set_window_title(
+                renderer.window,
+                f"Perlin World - {fps:.1f} FPS | "
+                f"Pos x:{cam_x:.2f} y:{cam_y:.2f} z:{cam_z:.2f} | "
+                f"Pitch:{pitch_deg:.1f} Yaw:{yaw_deg:.1f}"
+            )
             fps_accum = 0.0
             fps_frames = 0
 

@@ -1,6 +1,12 @@
 
 import math
 
+def fade(t):
+    return t * t * t * (t * (t * 6 - 15) + 10)
+
+def lerp(a, b, t):
+    return a + t * (b - a)
+
 
 def perspective(fovy, aspect, near, far):
     f = 1.0 / math.tan(fovy / 2.0)
