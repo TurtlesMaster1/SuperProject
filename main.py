@@ -4,6 +4,7 @@ import glfw
 
 from mainrenderapi import Renderer, ConcreteWorldGen
 from mathhelpers import get_camera_forward, get_camera_right
+import numpy as np
 
 
 def main():
@@ -32,11 +33,13 @@ def main():
         for x in range(world_w + 1):
             h = heights[z][x]
             y = (h - 0.45) * height_scale
-            vertices.extend([
-                x + x_offset,
-                y,
-                z + z_offset,
-            ])
+            vertices.extend(
+                [
+                    x + x_offset,
+                    y,
+                    z + z_offset,
+                ]
+            )
 
     stride = world_w + 1
     for z in range(world_d):
@@ -58,22 +61,52 @@ def main():
             colors.append(worldgen.height_color((h2 + h3 + h4) / 3.0))
 
     mesh = renderer.create_mesh(vertices, indices, colors)
-    mesh.set_model_matrix([
-        1, 0, 0, 0,
-        0, 1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1,
-    ])
+    mesh.set_model_matrix(
+        [
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+        ]
+    )
 
     # Rotate the world 180 degrees around the Z axis (screen upside down).
-    mesh.set_model_matrix([
-        -1, 0, 0, 0,
-        0, -1, 0, 0,
-        0, 0, 1, 0,
-        0, 0, 0, 1,
-    ])
+    mesh.set_model_matrix(
+        [
+            -1,
+            0,
+            0,
+            0,
+            0,
+            -1,
+            0,
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            1,
+        ]
+    )
 
-    sample_height = worldgen.make_height_sampler(heights, world_w, world_d, height_scale)
+    sample_height = worldgen.make_height_sampler(
+        heights, world_w, world_d, height_scale
+    )
 
     cursor_locked = True
     renderer.set_cursor_locked(cursor_locked)
@@ -132,8 +165,8 @@ def main():
                 pitch += dy * mouse_sensitivity
             else:
                 pitch -= dy * mouse_sensitivity
-            # Allow full rotation past 180 degrees.
-            renderer.set_camera_rotation(pitch, yaw)
+            pitch_clipped = np.clip(pitch, -1.57, 1.57)
+            renderer.set_camera_rotation(pitch_clipped, yaw)
         last_mouse = (mouse_x, mouse_y)
 
         pitch, yaw = renderer.get_camera_rotation()
@@ -224,7 +257,7 @@ def main():
                 renderer.window,
                 f"Perlin World - {fps:.1f} FPS | "
                 f"Pos x:{cam_x:.2f} y:{cam_y:.2f} z:{cam_z:.2f} | "
-                f"Pitch:{pitch_deg:.1f} Yaw:{yaw_deg:.1f}"
+                f"Pitch:{pitch_deg:.1f} Yaw:{yaw_deg:.1f}",
             )
             fps_accum = 0.0
             fps_frames = 0
