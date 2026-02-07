@@ -42,7 +42,9 @@ def main():
             )
 
     stride = world_w + 1
+    ground_heights = []
     for z in range(world_d):
+        row = []
         for x in range(world_w):
             i0 = z * stride + x
             i1 = i0 + 1
@@ -56,10 +58,10 @@ def main():
             h2 = heights[z][x + 1]
             h3 = heights[z + 1][x]
             h4 = heights[z + 1][x + 1]
-
+            row.append(h1)
             colors.append(worldgen.height_color((h1 + h2 + h3) / 3.0))
             colors.append(worldgen.height_color((h2 + h3 + h4) / 3.0))
-
+        ground_heights.append(row)
     mesh = renderer.create_mesh(vertices, indices, colors)
     mesh.set_model_matrix(
         [
@@ -240,7 +242,7 @@ def main():
                 or glfw.get_key(renderer.window, glfw.KEY_SPACE) == glfw.PRESS
             ):
                 vel_y = jump_speed
-
+        cam_y = ground_heights[cam_z][cam_x] + 2
         renderer.set_camera_position(cam_x, cam_y, cam_z)
 
         renderer.run()

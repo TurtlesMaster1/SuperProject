@@ -4,7 +4,6 @@ import random
 from mathhelpers import fade, lerp
 
 
-
 def _grad(hash_value, x, y):
     h = hash_value & 3
     u = x if h < 2 else y
@@ -75,7 +74,7 @@ def generate_world_heights(width=120, depth=120, noise_scale=0.06, seed=1337):
             nz = z * noise_scale
             h = fbm(nx, nz, perm)
             h = (h + 1.0) * 0.5
-            h = h ** 2
+            h = h**2
             h += 0.5
             row.append(h)
         heights.append(row)
@@ -83,7 +82,7 @@ def generate_world_heights(width=120, depth=120, noise_scale=0.06, seed=1337):
     return heights, width, depth
 
 
-def make_height_sampler(heights, width, depth, height_scale):
+def maked_height_sampler(heights, width, depth, height_scale):
     def sample_height(x, z):
         gx = x + width / 2.0
         gz = z + depth / 2.0
@@ -127,7 +126,9 @@ class ConcreteWorldGen:
         return height_color(height_value)
 
     def generate_world_heights(self, width=120, depth=120, noise_scale=0.06, seed=1337):
-        return generate_world_heights(width=width, depth=depth, noise_scale=noise_scale, seed=seed)
+        return generate_world_heights(
+            width=width, depth=depth, noise_scale=noise_scale, seed=seed
+        )
 
     def make_height_sampler(self, heights, width, depth, height_scale):
-        return make_height_sampler(heights, width, depth, height_scale)
+        return maked_height_sampler(heights, width, depth, height_scale)
