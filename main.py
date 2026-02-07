@@ -85,26 +85,26 @@ def main():
     )
 
     # Rotate the world 180 degrees around the Z axis (screen upside down).
-    mesh.set_model_matrix(
-        [
-            -1,
-            0,
-            0,
-            0,
-            0,
-            -1,
-            0,
-            0,
-            0,
-            0,
-            1,
-            0,
-            0,
-            0,
-            0,
-            1,
-        ]
-    )
+    # mesh.set_model_matrix(
+    #     [
+    #         -1,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         -1,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         1,
+    #         0,
+    #         0,
+    #         0,
+    #         0,
+    #         1,
+    #     ]
+    # )
 
     sample_height = worldgen.make_height_sampler(
         heights, world_w, world_d, height_scale
@@ -242,7 +242,7 @@ def main():
                 or glfw.get_key(renderer.window, glfw.KEY_SPACE) == glfw.PRESS
             ):
                 vel_y = jump_speed
-        cam_y = ground_heights[cam_z][cam_x] + 2
+        cam_y = ground_heights[int(cam_z)][int(cam_x)] + player_height
         renderer.set_camera_position(cam_x, cam_y, cam_z)
 
         renderer.run()

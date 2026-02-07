@@ -51,16 +51,21 @@ def fbm(x, y, perm, octaves=5, lacunarity=2.0, gain=0.5):
     return total / norm if norm else 0.0
 
 
+# Green: (0.10,0.62,0.16)
+# Grey: (0.40, 0.40, 0.42)
+# White: (0.92, 0.92, 0.95)
+
+
 def height_color(height_value):
-    if height_value < 0.38:
-        return (0.08, 0.28, 0.65)
-    if height_value < 0.45:
-        return (0.72, 0.66, 0.46)
-    if height_value < 0.82:
+    if height_value > 0.92:
         return (0.10, 0.62, 0.16)
-    if height_value < 0.92:
+    if height_value > 0.82:
         return (0.40, 0.40, 0.42)
-    return (0.92, 0.92, 0.95)
+    if height_value > 0.45:
+        return (0.92, 0.92, 0.95)
+    if height_value > 0.38:
+        return (0.08, 0.28, 0.65)
+    return (0.10, 0.62, 0.16)
 
 
 def generate_world_heights(width=120, depth=120, noise_scale=0.06, seed=1337):
