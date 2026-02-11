@@ -241,8 +241,8 @@ def main():
                 input_state.is_key_pressed(glfw.KEY_SPACE)
                 or glfw.get_key(renderer.window, glfw.KEY_SPACE) == glfw.PRESS
             ):
-                vel_y = jump_speed
-        cam_y = ground_heights[int(cam_z)][int(cam_x)] + player_height
+                vel_y += jump_speed * dt * -gravity
+        cam_y = ground_heights[int(cam_z)][int(cam_x)] + player_height + vel_y
         renderer.set_camera_position(cam_x, cam_y, cam_z)
 
         renderer.run()
